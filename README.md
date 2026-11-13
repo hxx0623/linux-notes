@@ -92,6 +92,10 @@ Linux/
 | 忘了 vim 怎么保存退出 / 快捷键 | [03-命令速查/vim-速查.md](03-命令速查/vim-速查.md) |
 | 练分区、加硬盘、改 fstab | [03-命令速查/ubuntu-partition-guide.md](03-命令速查/ubuntu-partition-guide.md) |
 | 查虚拟机配置、IP、密码相关记录 | [04-环境与脚本/ubuntu-vm-notes.md](04-环境与脚本/ubuntu-vm-notes.md) |
+| 🍊 **香橙派板子怎么刷机 / ADB 怎么连 / 踩过哪些坑** | [香橙派/README.md](香橙派/README.md)（硬件事实 + MaskROM 手法 + SDDiskTool 流程 + ADB 三种连法 + 8 个真坑） |
+| 🔧 **想编译 Linux 内核 / 学 QEMU / 造最小根文件系统** | [内核实验/README.md](内核实验/README.md)（完整 SOP + 6 个真坑 + 配置/四阶段/bzImage/内核态用户态） |
+| 📘 **准备复习 C 语言（为嵌入式供能）** | [C语言/README.md](C语言/README.md)（6 模块计划 + 抄改做法） |
+| 🐙 **忘了 Git 命令 / 报错看不懂** | [GitHub/README.md](GitHub/README.md)｜[Git基础与配置.md](GitHub/Git基础与配置.md)｜[问题速查.md](GitHub/问题速查.md) |
 | 重装系统后想一键装好常用工具 | [04-环境与脚本/ubuntu-vm-setup.sh](04-环境与脚本/ubuntu-vm-setup.sh) |
 | 手上又有一个 PDF 要抽文字 | [04-环境与脚本/pdf-to-text.py](04-环境与脚本/pdf-to-text.py) |
 

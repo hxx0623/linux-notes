@@ -25,3 +25,7 @@ __pycache__/
 
 # ── 课件原始 PDF（体积大；抽出来的 txt 已入库，原件不必重复）──
 *.pdf
+
+# vendor manual fulltext: local only, never commit
+opi5-manual-fulltext.txt
+
