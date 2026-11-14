@@ -145,3 +145,103 @@ mount -t proc none /proc  →  cat /proc/version  →  正常
 | 2 | 换真实发行版 rootfs（Alpine/Debian minirootfs），得到一个能装包的 mini 系统 |
 | 3 | 挂一块虚拟磁盘（`-drive`），让根文件系统落在 ext4 上而不是 initramfs |
 | 4 | 用 `make menuconfig` 手动裁剪（对比 defconfig 的体积/功能差异） |
+
+---
+
+## 六、⭐ ARM64 交叉编译（2026-11-14 完成，闭环打通）
+
+### 结果
+- 内核 `Image`：**44 MB**（未压缩；x86 的 bzImage 只有 13M）
+- rootfs：**Alpine aarch64 minirootfs**（动态链接 musl，约 3 MB）
+- **`uname -m` → `aarch64`**；**`/proc/cpuinfo` 的 `CPU part 0xd0b` → Cortex-A76**（与板子 RK3588S 的大核**同型号**）
+
+### 和 x86 的差异对照
+| 项 | x86_64 | **arm64** |
+| --- | --- | --- |
+| 编译器 | 本机 `gcc` | `aarch64-linux-gnu-gcc` |
+| 产物 | `bzImage` 13M（解压器+压缩内核） | **`Image` 44M（裸二进制）** |
+| 串口 | `ttyS0` | **`ttyAMA0`**（PL011） |
+| 硬件描述 | ACPI/固件（`efi`/`ACPI`/`DMI` 日志） | **设备树**（`Machine model: linux,dummy-virt`，panic 里标 `(DT)`） |
+| 配置规模 | `=y` 1577 / `=m` **13** / not set 2608 | `=y` 3164 / `=m` **1167** / not set 4754 |
+| 权限分层 | ring 0–3 | **EL0–EL3**；QEMU 默认不给 EL2（`kvm: HYP mode not available`） |
+
+### 命令（arm64）
+```bash
+# ① 交叉编译（必须 O= 分离目录）
+sudo apt install -y gcc-aarch64-linux-gnu qemu-system-arm
+cd ~/kernel-lab/linux-6.12
+make mrproper                      # ⚠️ 源码树有旧产物时 O= 会被拒绝
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=~/kernel-lab/build-arm64 defconfig
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=~/kernel-lab/build-arm64 -j4 Image
+
+# ② rootfs（Alpine，动态链接）
+F=$(curl -s https://mirrors.tuna.tsinghua.edu.cn/alpine/latest-stable/releases/aarch64/ \
+    | grep -oE 'alpine-minirootfs-[0-9.]+-aarch64\.tar\.gz' | sort -u | tail -1)
+wget "https://mirrors.tuna.tsinghua.edu.cn/alpine/latest-stable/releases/aarch64/$F"
+mkdir -p rootfs-arm64 && tar -xzf "$F" -C rootfs-arm64
+cd rootfs-arm64 && cat > init <<'EOF'
+#!/bin/sh
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devtmpfs none /dev
+exec /bin/sh
+EOF
+chmod +x init && find . | cpio -o -H newc | gzip > ../initramfs-arm64.cpio.gz
+
+# ③ 启动
+qemu-system-aarch64 -M virt -cpu cortex-a76 -smp 4 -m 512 \
+  -kernel build-arm64/arch/arm64/boot/Image \
+  -initrd initramfs-arm64.cpio.gz \
+  -append "console=ttyAMA0 rdinit=/init" \
+  -display none -serial stdio -monitor none
+```
+
+### 这一步踩的坑
+| 坑 | 真相 |
+| --- | --- |
+| `*** The source tree is not clean, please run 'make mrproper'` | 源码树里有 in-tree 构建留下的 `.config`/`include/generated` → **`O=` 外编前必须先 mrproper**（先把旧产物拷到 `out-x86/` 再清） |
+| rootfs 不能跨架构复用 | x86 的 busybox（ELF x86-64）在 ARM 上一条指令都跑不了 |
+| Alpine 的 busybox 是**动态链接** | 依赖 `interpreter /lib/ld-musl-aarch64.so.1` → **必须整包打包，不能只拷 busybox** |
+| 实际是 **EL1** 不是 EL2 | QEMU `-M virt` 默认不给虚拟化层；要 EL2 需 `-M virt,virtualization=on -cpu max` |
+
+### 意义
+**同一份源码 → 两个架构 → 两个都能启动 → 两个都有 shell。** 交叉编译闭环完成。
+**离"上板子"只差一个正确的设备树**：`arch/arm64/boot/dts/rockchip/rk3588s-orangepi-5.dtb`（用 `make ARCH=arm64 ... dtbs` 生成）。
+
+---
+
+## 七、⭐ 设备树验证结果（2026-11-14）
+
+**主线 Linux 6.12 官方收录了 Orange Pi 5 的设备树** —— 这是"能用主线内核跑这块板子"的门票。
+
+```bash
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=~/kernel-lab/build-arm64 -j4 dtbs
+ls ~/kernel-lab/build-arm64/arch/arm64/boot/dts/rockchip | grep -i orangepi
+```
+
+实测列表里有：`rk3328-orangepi-r1-plus`、`rk3399-orangepi`、`rk3566-orangepi-3b`、
+`rk3588-orangepi-5-plus`、**`rk3588s-orangepi-5.dtb`** ← 本板
+
+### dtb / dts 实测数据
+| 项 | 值 |
+| --- | --- |
+| dtb 大小 | **75 KB**（76693 字节，version 17，boot CPU=0） |
+| 反编译后 `.dts` | **4410 行** |
+| `model`（主线） | **`Xunlong Orange Pi 5`** |
+| `model`（厂商内核，板子上 `/sys/firmware/devicetree/base/model`） | **`Orange Pi 5`** ← 不完全一样，厂商用自己的 dts |
+| `compatible` | `"xunlong,orangepi-5", "rockchip,rk3588s"`（板子 + SoC 两级匹配） |
+| UART | `serial0`~`serial7`（8 个） |
+| GPIO 物理地址 | `gpio@fd8a0000`、`gpio@fec20000` … |
+| `memory@` 节点 | **dtb 里没有** —— Rockchip 惯例：内存大小由 U-Boot 启动时填进 `/memory` |
+
+反编译命令：`dtc -I dtb -O dts <dtb> -o out.dts`（需 `apt install device-tree-compiler`）
+
+### 补充实测（2026-11-14）
+- **主线 dtb 里 `memory` 节点完全没有** —— `grep -n "memory" /tmp/opi5.dts` **零命中**。内存信息 100% 由 U-Boot 在启动时创建 `/memory` 节点（同一份 dtb 适配 2/4/8/16GB 各版本）。
+- **板子厂商 dtb 的顶层节点数 = 346**（`ls /sys/firmware/devicetree/base/ | wc -l`）。
+  里面有 `can@fea50000/60000/70000`（3 路 CAN）、`av1d@fdc70000`（AV1 硬解）、`avsd-plus@fdb51000`（AVS 标准）、`arm-pmu`（性能计数器）、`cluster0/1-opp-table`（大小核各自的频率电压表）、`adc-keys`（ADC 按键）、`bt-sco`/`bt-sound`（蓝牙语音）、`__symbols__`（说明厂商编译时开了 dtc overlay 支持）。
+
+### 结论
+**「主线内核 + 自己的设备树 → 跑 Linux」这条路是通的**，不需要任何厂商补丁。
+**距离真上板子还差两步**：① 用 U-Boot 加载这个 Image+dtb（板子 SPI 里现在是厂商 U-Boot）；
+② rootfs 要放到存储上而不是 initramfs。**最省事的入口仍是先刷一个 Armbian/官方 Ubuntu 镜像，再替换内核。**

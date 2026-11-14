@@ -97,6 +97,7 @@ Linux/
 | 📘 **准备复习 C 语言（为嵌入式供能）** | [C语言/README.md](C语言/README.md)（6 模块计划 + 抄改做法） |
 | 🐙 **忘了 Git 命令 / 报错看不懂** | [GitHub/README.md](GitHub/README.md)｜[Git基础与配置.md](GitHub/Git基础与配置.md)｜[问题速查.md](GitHub/问题速查.md) |
 | 重装系统后想一键装好常用工具 | [04-环境与脚本/ubuntu-vm-setup.sh](04-环境与脚本/ubuntu-vm-setup.sh) |
+| 🎯 **想检验"香橙派/内核"这块是不是真会了** | [复习-香橙派与内核.md](复习-香橙派与内核.md)（2 张流程图 + 命令速查 + 12 组概念对照 + 踩坑速查 + **20 道自测题带答案** + 独立完成验收清单） |
 | 手上又有一个 PDF 要抽文字 | [04-环境与脚本/pdf-to-text.py](04-环境与脚本/pdf-to-text.py) |
 
 ---
