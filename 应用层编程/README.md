@@ -49,7 +49,7 @@
 | 集号 | 内容 | 为什么能跳 |
 | --- | --- | --- |
 | 01–02 | 课程介绍 / 文档介绍 | 快看 8 分钟知道资料在哪即可 |
-| 05–08 | VS 下载安装 / 设置 / 卸载 / HelloWorld | **Windows VS 开发环境**，你在 Linux VM 里用 gcc，用不上 |
+| 05–08 | VS Code 下载安装 / 设置 / 卸载 / HelloWorld | ⚠️ **2026-11-19 更正**：这几集装的是 **Ubuntu 里的 VS Code**（`sudo snap install code --classic`），不是 Windows 的 Visual Studio。之前标"用不上"是错的。仍然低优先，但该装 |
 | 09–13 | GCC 编译四阶段（预处理/编译/汇编/链接） | **C 语言第 1 课已实测过**（`-E -S -c` 四条命令） |
 | 20–26 | fopen / fclose / fputc / fputs / fprintf / fgetc / fgets | **C 语言第 7 课已全部写过**（`mycat` 和系统 cat 逐字节一致） |
 
@@ -196,7 +196,11 @@
 | **调试** | `gdb`、**`strace`（这课的核心工具）**、`valgrind` 可选 |
 | 头文件 | `glibc` 自带 |
 | 可选 | `man-pages-zh`（中文 man）、`vim`/`VS Code` |
-| **不用装** | Windows 的 VS（第 5–8 集讲的那个） |
+| **VS Code** | 05–08 集装的那个，**Ubuntu 版**。用 `apt` + 微软源装，别用 snap（见下） |
+| **不用装** | ~~Windows 的 VS~~（此前判断有误已更正） |
+
+> **装 VS Code 的坑（2026-11-19 实测）**：`snap install code --classic` 从 Canonical 单连接下载只有 108 KB/s；
+> 换微软 apt 源或直接下 .deb 快一倍以上。详见 §八。
 
 ---
 
@@ -217,3 +221,45 @@ Linux/应用层编程/
 
 > **建议从 15 集开始**（跳过 Windows VS 和已学的编译四阶段），
 > 或者按你的习惯从 01 集老老实实过一遍（只要 8 分钟）。
+
+---
+
+## 八、⭐ 课件与代码（2026-11-19 已就位）
+
+**来源**：配套资料来自 B 站视频简介 —— 关注公众号「尚硅谷教育」，回复「视频资料」免费获取。
+用户下载后放在本目录，已解压。
+
+| 位置 | 内容 | 说明 |
+| --- | --- | --- |
+| `资料/1.笔记/05_尚硅谷嵌入式技术之Linux应用层开发1.0.0.docx` | **58 MB 教师笔记**，9673 段，**这是课程的权威正文** | 不进 git（可重新获取） |
+| `资料/3.代码/` | 7 个分主题代码包：`file_io` `process_test` `thread_test` `socket_test` `daemon_and_multiplex` `helloworld` `process_thread_theory` | 小（0.2 MB），已入库 |
+| `资料.zip` | 其实是 **VS Code 的 .deb**，不是课件 | 可删（VM 里已装好） |
+
+### 怎么读这份 docx
+
+**不能用 pyton-docx 之外的笨办法硬看** —— 它是自定义样式，不是标准 Heading：
+
+| 样式名 | 含义 |
+| --- | --- |
+| `a0` | 一级标题（如「POSIX」「安装IDE编程环境」） |
+| `a1` | 二级标题（如「GCC」「glibc」「GNU C」） |
+| `af8` | 正文 |
+| `a4` | 列表项 |
+
+**已经写好工具**：`tools/docx_outline.py <docx> headings` 抽标题树，
+`... text <起点> <条数>` 按段落号取正文。
+
+### 拿它教课的规矩
+
+1. **以 docx 为准**，不以我按标题推的内容为准；
+2. 讲某集前，先从 docx 里定位这一集对应的小节，把原文段落取出来；
+3. 课程代码用 `资料/3.代码/` 里对应的那份，不要我另造。
+
+### 已核实的开头（用来校准我的判断）
+
+docx 开篇依次是：`GCC、glibc和GNU C的关系` → `POSIX` → `安装IDE编程环境`
+（原文：`sudo snap install code --classic`，明确写的是**在 Ubuntu 里装 VS Code**）→ `安装gcc` →
+`设置使用VS`（启动/中文化/改字体/装扩展）。
+
+**这证实了「05–08 是 Windows VS」是我此前的错误判断。**
+
